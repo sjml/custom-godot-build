@@ -72,6 +72,7 @@ jobs:
 
   # macOS builds are very slow on GitHub, so only building arm
   #   because Apple's x86 stuff is about to be deprecated anyway.
+  # tarzips the app directory to preserve permissions
   mac-arm-build:
     runs-on: macos-latest
     steps:
@@ -82,11 +83,12 @@ jobs:
     - name: Run Mac (arm) Build
       run: |
         ./build_mac_arm.sh
+        tar -czf mac-arm-build.tar.gz -C build .
     - name: Upload Mac (arm) Build
       uses: actions/upload-artifact@v7
       with:
         name: mac-arm-build
-        path: build
+        path: mac-arm-build.tar.gz
 
   release:
     needs:
@@ -103,6 +105,10 @@ jobs:
         with:
           path: build
           merge-multiple: true
+      - name: Unpack Mac Build
+        run: |
+          tar -xzf build/mac-arm-build.tar.gz -C build
+          rm build/mac-arm-build.tar.gz
       - name: Build Full Archive
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
