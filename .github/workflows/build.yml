@@ -127,9 +127,10 @@ jobs:
 
   release:
     needs:
-      - web-build
-      - linux-builds
       - mac-arm-build
+      - web-build
+      - windows-build
+      - linux-builds
     runs-on: ubuntu-latest
     permissions:
       contents: write
