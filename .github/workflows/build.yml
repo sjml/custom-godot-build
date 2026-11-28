@@ -1,0 +1,137 @@
+name: Build Patched Godot
+
+on:
+  push
+
+jobs:
+  web-build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - name: Install Prerequisites
+      run: |
+        sudo apt update
+        sudo apt install -y build-essential pkg-config scons
+    - name: Run Web Build
+      run: |
+        ./build_web.sh
+    - name: Upload Web Build
+      uses: actions/upload-artifact@v7
+      with:
+        name: web-build
+        path: build
+
+  # Wanting to follow the Godot documentation advice to
+  #   build on something as old as 20.04, but GitHub's
+  #   rolling deprecation make that both tricky and a
+  #   moving target.
+  # TODO: maybe move this into a docker container so it
+  #       can be building on an older distro while running
+  #       on something newer?
+  linux-builds:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    steps:
+    - uses: actions/checkout@v7
+    - name: Install Prerequisites
+      run: |
+        sudo apt update
+        sudo apt install -y \
+            build-essential \
+            pkg-config \
+            libx11-dev \
+            libxcursor-dev \
+            libxinerama-dev \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            libasound2-dev \
+            libpulse-dev \
+            libudev-dev \
+            libxi-dev \
+            libxrandr-dev \
+            libwayland-dev
+        pip install --user zstandard scons
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+    - name: Run Linux Builds
+      env:
+        BUILD_ARCH: ${{ matrix.arch }}
+      run: |
+        ./build_linux.sh
+    - name: Upload linux Builds
+      uses: actions/upload-artifact@v7
+      with:
+        name: linux-${{ matrix.arch }}-build
+        path: build
+
+  # macOS builds are very slow on GitHub, so only building arm
+  #   because Apple's x86 stuff is about to be deprecated anyway.
+  mac-arm-build:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v7
+    - name: Install Prerequisites
+      run: |
+        brew install scons
+    - name: Run Mac (arm) Build
+      run: |
+        ./build_mac_arm.sh
+    - name: Upload Mac (arm) Build
+      uses: actions/upload-artifact@v7
+      with:
+        name: mac-arm-build
+        path: build
+
+  release:
+    needs:
+      - web-build
+      - linux-builds
+      - mac-arm-build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Download All Builds
+        uses: actions/download-artifact@v8
+        with:
+          path: build
+          merge-multiple: true
+      - name: Build Full Archive
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BUILD_LABEL=$(./_get_build_label.sh)
+          if gh release view "$BUILD_LABEL" >/dev/null 2>&1; then
+            BUILD_LABEL="${BUILD_LABEL}-run${{ github.run_number }}"
+          fi
+
+          ARCHIVE_NAME="${BUILD_LABEL}.tar.gz"
+
+          echo "BUILD_LABEL=$BUILD_LABEL" >> "$GITHUB_ENV"
+          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> "$GITHUB_ENV"
+
+          cp config.json build/config.json
+          tar -czf "$ARCHIVE_NAME" -C build .
+
+          {
+            echo "This custom build of Godot was generated from the following configuration:"
+            echo ""
+            echo '```json'
+            cat config.json
+            echo '```'
+            echo ""
+          } > release-text.md
+      - name: Publish Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$BUILD_LABEL" "$ARCHIVE_NAME" \
+            --title "$BUILD_LABEL" \
+            --notes-file release-text.md
