@@ -4,6 +4,26 @@ on:
   push
 
 jobs:
+  # macOS builds are very slow on GitHub, so only building arm
+  #   because Apple's x86 stuff is about to be deprecated anyway.
+  # tarzips the app directory to preserve permissions
+  mac-arm-build:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v7
+    - name: Install Prerequisites
+      run: |
+        brew install scons
+    - name: Run Mac (arm) Build
+      run: |
+        ./build_mac_arm.sh
+        tar -czf mac-arm-build.tar.gz -C build .
+    - name: Upload Mac (arm) Build
+      uses: actions/upload-artifact@v7
+      with:
+        name: mac-arm-build
+        path: mac-arm-build.tar.gz
+
   web-build:
     runs-on: ubuntu-latest
     steps:
@@ -21,6 +41,39 @@ jobs:
         name: web-build
         path: build
 
+  windows-build:
+    runs-on: ubuntu-24.04 # ironic!
+    steps:
+    - uses: actions/checkout@v7
+    - name: Install Prerequisites
+      run: |
+        sudo apt update
+        sudo apt install -y \
+            build-essential \
+            pkg-config \
+            libx11-dev \
+            libxcursor-dev \
+            libxinerama-dev \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            libasound2-dev \
+            libpulse-dev \
+            libudev-dev \
+            libxi-dev \
+            libxrandr-dev \
+            libwayland-dev \
+            mingw-w64
+        pip install --user zstandard scons
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+    - name: Run Windows Builds
+      run: |
+        ./build_windows.sh
+    - name: Upload Windows Builds
+      uses: actions/upload-artifact@v7
+      with:
+        name: windows-build
+        path: build
+
   # Wanting to follow the Godot documentation advice to
   #   build on something as old as 20.04, but GitHub's
   #   rolling deprecation make that both tricky and a
@@ -36,8 +89,10 @@ jobs:
         include:
           - arch: x86_64
             runner: ubuntu-24.04
-          - arch: arm64
-            runner: ubuntu-24.04-arm
+          # don't need this for now since we're not doing an arm export
+          #   in the downstream project anyway at the moment
+          # - arch: arm64
+          #   runner: ubuntu-24.04-arm
     steps:
     - uses: actions/checkout@v7
     - name: Install Prerequisites
@@ -64,31 +119,11 @@ jobs:
         BUILD_ARCH: ${{ matrix.arch }}
       run: |
         ./build_linux.sh
-    - name: Upload linux Builds
+    - name: Upload Linux Builds
       uses: actions/upload-artifact@v7
       with:
         name: linux-${{ matrix.arch }}-build
         path: build
-
-  # macOS builds are very slow on GitHub, so only building arm
-  #   because Apple's x86 stuff is about to be deprecated anyway.
-  # tarzips the app directory to preserve permissions
-  mac-arm-build:
-    runs-on: macos-latest
-    steps:
-    - uses: actions/checkout@v7
-    - name: Install Prerequisites
-      run: |
-        brew install scons
-    - name: Run Mac (arm) Build
-      run: |
-        ./build_mac_arm.sh
-        tar -czf mac-arm-build.tar.gz -C build .
-    - name: Upload Mac (arm) Build
-      uses: actions/upload-artifact@v7
-      with:
-        name: mac-arm-build
-        path: mac-arm-build.tar.gz
 
   release:
     needs:

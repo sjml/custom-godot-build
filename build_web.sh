@@ -34,7 +34,7 @@ popd # godot-source
 mkdir -p build
 pushd build
   mkdir -p templates
-  cp ../godot-source/bin/godot.web.template_debug.wasm32.nothreads.dlink.zip ./templates/web_dlink_nothreads_debug.zip
+  cp ../godot-source/bin/godot.web.template_debug.wasm32.nothreads.dlink.zip   ./templates/web_dlink_nothreads_debug.zip
   cp ../godot-source/bin/godot.web.template_release.wasm32.nothreads.dlink.zip ./templates/web_dlink_nothreads_release.zip
 
   pushd templates

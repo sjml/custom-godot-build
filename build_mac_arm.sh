@@ -24,7 +24,7 @@ pushd godot-source
 
   # build export templates for mac
   scons platform=macos arch=arm64 target=template_release production=yes metal=yes vulkan=no accesskit=no angle=no
-  scons platform=macos arch=arm64 target=template_debug production=yes metal=yes vulkan=no accesskit=no angle=no
+  scons platform=macos arch=arm64 target=template_debug   production=yes metal=yes vulkan=no accesskit=no angle=no
   strip bin/godot.*
 popd # godot-source
 
@@ -39,7 +39,7 @@ pushd build
 
   cp -R ../godot-source/misc/dist/macos_template.app ./templates/
   mkdir ./templates/macos_template.app/Contents/MacOS
-  cp ../godot-source/bin/godot.macos.template_debug.arm64 ./templates/macos_template.app/Contents/MacOS/godot_macos_debug.arm64
+  cp ../godot-source/bin/godot.macos.template_debug.arm64   ./templates/macos_template.app/Contents/MacOS/godot_macos_debug.arm64
   cp ../godot-source/bin/godot.macos.template_release.arm64 ./templates/macos_template.app/Contents/MacOS/godot_macos_release.arm64
   pushd templates
     zip -r -FS -9 ./macos.zip macos_template.app/

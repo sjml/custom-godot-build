@@ -19,7 +19,7 @@ pushd godot-source
   done
 
   scons platform=linuxbsd arch=$BUILD_ARCH target=template_release production=yes lto=none accesskit=no angle=no
-  scons platform=linuxbsd arch=$BUILD_ARCH target=template_debug production=yes lto=none accesskit=no angle=no
+  scons platform=linuxbsd arch=$BUILD_ARCH target=template_debug   production=yes lto=none accesskit=no angle=no
   strip bin/godot.*
 popd # godot-source
 
@@ -27,5 +27,5 @@ mkdir -p build
 pushd build
   mkdir -p templates
   cp ../godot-source/bin/godot.linuxbsd.template_release.$BUILD_ARCH ./templates/linux_release.$BUILD_ARCH
-  cp ../godot-source/bin/godot.linuxbsd.template_debug.$BUILD_ARCH ./templates/linux_debug.$BUILD_ARCH
+  cp ../godot-source/bin/godot.linuxbsd.template_debug.$BUILD_ARCH   ./templates/linux_debug.$BUILD_ARCH
 popd # build
